@@ -1,0 +1,118 @@
+
+PASOS PARA RESPALDAR PROYECTO
+
+1 Crear archivo: .gitignore
+1.1 y escribimos en el archivo: node_modules/
+NOTA: Esto es para que ignore esta carpeta y su contenido
+
+2. Cramos otro archivo con el nombre: README.md
+2.1 y escribimos en el notas para recordar como ejectuar el proyecto
+3. Abrimos terminal
+    3.1 ejecutamos: git init
+
+
+
+
+
+PASO 1. Creamos la carpeta
+PASO 2. Abrimos terminal -> cd arrastramos la carpeta y damos enter.
+PASO 3. npm init -y
+
+NOTA -> Se tiene que crear un archivo ->  {}package.json
+
+PASO 4. Instalaremos con el editor XCODE en la terminal lo siguiente: sudo npm install express --save
+PASO 5. Escribimos nuestra contraseña de la imac. 
+
+NOTA -> Se tienen que crear (node_modules) y (package-lock.json) y jamas tenemos que modificarlos, solo en nivel avanzado.
+
+PASO 6. Creamos un archivo en la raíz llamado: index.js
+ejercicio: escribimos: console.log('Hola mundo'); en el index.js y en la terminal escrimos: node index.js
+y tiene que aparecernos el mensaje. "Hola mundo", eso significa que todo va bien y borramos todo del index.js.
+
+
+PASO 7. 
+
+    const express = require('express');
+
+            //creamos el servidor express
+            const app = express();   
+
+            //levantamos el puerto
+            app.listen(3000, ()=> {
+
+                console.log('Servidor corriendo en puerto' + 3000);
+
+            });     
+
+NOTA: Nodemon es para que el servidor recargue de forma automática con cada cambio que hagamos.
+
+------------------------------------------------------------------------
+PASO 8. Instalamos nodemon en la terminal: sudo npm install -g nodemon
+NOTA. Escribimos nuestra contraseña de la imac. 
+------------------------------------------------------------------------
+
+PASO 9. En el archivo Package.json borramos lo que tiene "Scripts": {  },
+y lo escribimos:  { "start:dev": "nodemon index.js" },
+Esto es para ejecutarlo en modo de Desarrollo.
+
+NOTA: Para ejecutarlo escribimos en la terminal: npm run start:dev
+
+
+PASO 10. Necesitamos la conección a AmongoDB para la base de datos.
+cadena de coneccion:  mongodb+srv://enfoque_user:C5PJ1jNlXE45KBQu@serverlessinstance0.yxfmi.mongodb.net/enfoque
+
+NOTA: Instamos la app de escritorio Mongo Compass y hacemos la conección. 
+------------------------------------------------------------------------
+PASO 11. Instalamos mongoose en la terminal: sudo npm i mongoose
+------------------------------------------------------------------------
+
+PASO 12. Creamos una carpeta: database y un archivo dentro llamado: config.js
+12.1 vamos a configurar mongoose en el archivo config.js.
+
+        const mongoose = require('mongoose');
+
+        //creamos una función en cargada de ejectuarlo
+        const dbConnection = async() => {
+            try {
+                 await mongoose.connect(process.env.DB_CNN);
+
+                console.log('Base de datos online, EXITO')
+            } catch (error) {
+                console.log(error);
+                throw new Error('Error a la hora de iniciar la bd ver logs');
+            }
+        }
+        module.exports = {
+            //exportamos la función para poder usarla en otro lado
+            dbConnection
+        }
+
+------------------------------------------------------------------------
+PASO 13. Instamos paquete en la terminal: sudo npm i dotenv
+------------------------------------------------------------------------
+
+13.1 Creamos un archivo en la raiz de nombre: .env
+13.2 escribimos variables en mayusculas:
+        PORT=3000
+        DB_CNN=mongodb+srv://enfoque_user:C5PJ1jNlXE45KBQu@serverlessinstance0.yxfmi.mongodb.net/enfoque
+
+13.3 Vamos al archivo index y escribimos hasta arriba para poder leer el archivo .env: require('dotenv').config();
+13.4 Actualizamos el puerto en el index.js:
+
+    //actualizamos el puerto
+    app.listen(process.env.PORT, ()=> {
+        console.log('Servidor corriendo en puerto' + process.env.PORT);
+    });
+
+------------------------------------------------------------------------
+PASO 14. instamos en terminal: sudo npm i cors
+------------------------------------------------------------------------
+
+PASO 15. agregamos al index.js
+
+        const cors = require('cors');
+
+        //configurar CORS esto va despues de express
+        app.use(cors());
+
+
