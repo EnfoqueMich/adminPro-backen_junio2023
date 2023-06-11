@@ -18,22 +18,19 @@ const app = express();
 //cada vez que se haga una petición
 app.use(cors());
 
+//midelware para la lectura y parseo de body
+//es obligatorio tiene que ir antes de las RUTAS
+app.use(express.json());
+
+
 dbConnection();
 
  
 
 
 //RUTAS
-app.get( '/', (req, res) => {
-
-    res.json({
-        ok: true,
-        msg:"Hola mundo"
-    });
-
-
-});
-
+app.use( '/api/usuarios', require('./routes/usuarios') );
+app.use( '/api/login', require('./routes/auth') );
  
 //levantamos el puerto
 app.listen(process.env.PORT, ()=> {

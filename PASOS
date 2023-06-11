@@ -8,7 +8,12 @@ NOTA: Esto es para que ignore esta carpeta y su contenido
 2. Cramos otro archivo con el nombre: README.md
 2.1 y escribimos en el notas para recordar como ejectuar el proyecto
 3. Abrimos terminal
-    3.1 ejecutamos: git init
+    3.1 ejecutamos: 
+        git init ENTER
+        git add .  ENTER
+        git commit -m "PRIMER AVANCE BIEN REVISADO" ENTER
+        git tag -a v0.1.0 -m "inicio de backend" ENTER
+        git push --tags ENTER
 
 
 
@@ -116,3 +121,416 @@ PASO 15. agregamos al index.js
         app.use(cors());
 
 
+
+
+PASO 16. Creamos una carpeta: routes
+16.1 creamos un archivo dentro re routes: usuarios.js
+    16.2
+    //importamos el router para poder configurar nuestras rutas
+    const {Router} = require('express');
+    const router = Router();
+    //exportamos el router para poder utlizarlo en otros lugares
+    module.exports = router;
+
+16.2 en el index.js aplicamos el codigo para las rutas:
+
+    //abajo de la dbConection
+    app.use( '/api/usuarios', require('./routes/usuarios') );
+
+17. Creamos un carpeta en la raiz: controllers
+17.1 y un archivo dentro de nombre: usuarios.js
+17.2 Creamos los controladores y los exportamos
+
+    const getUsuarios = (req, res) => {
+        res.json({
+            ok: true,
+            msg: 'get Usuarios'
+        });
+    }
+
+    const crearUsuario = (req, res) => {
+        res.json({
+            ok: true,
+            msg: 'Creando Usuarios'
+        });
+    }
+
+    module.exports = {
+        getUsuarios, crearUsuario,
+    }
+
+PASO 18. Los importamos en routes -> usuarios.js
+    const { getUsuarios, crearUsuario } = require('../controllers/usuarios');
+
+    router.get( '/', getUsuarios );
+    router.post( '/', crearUsuario );
+
+PASO 19. en el index.js agregamos un midelware:
+    app.use(express.json());
+
+PASO 20. Creamos una carpeta con el nombre: models
+20.1 y un archivo dentro de models con el nombre: usuario.js
+20.2 Creamos el modelo para el usuario que se grabara en la base de datos: 
+
+    const { Schema } = require("mongoose");
+
+    const UsuarioSchema = Schema ({
+
+        nombre: {
+            type: String,
+            required: true
+        },
+        email: {
+            type: String,
+            required: true,
+            unique: true
+        },
+        password: {
+            type: String,
+            required: true
+        },
+        img: {
+            type: String,
+        },
+        role: {
+            type: String,
+            required: true,
+            default: 'USER_ROLE'
+        },
+    });
+
+    //Exportamos el modelo
+    module.exports = model ( 'Usuario', UsuarioSchema);
+
+PASO 21. Importamos el modelo en los controladores -> usuario.js
+
+const Usuario = require('../models/usuario');
+
+PASO 22. Creamos una nueva instancia en el controlador: crearUsuario
+
+    ++++++++++
+    NOTA. importamos en los controladores la response.
+    
+    const { response } = require ('express');
+    ++++++++++
+
+
+    const crearUsuario =  async(req, res) => {
+
+    //obtenemos los datos de la request
+    const { email, password, nombre } = req.body;
+
+    try {
+
+        //buscamos si existe el email con findOne
+        const existeEmail = await Usuario.findOne({ email });
+
+        if (existeEmail) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'El correo ya esta registrado'
+            });
+        }
+
+        //con esto ya tenemos una instancia que tiene los datos de req.body
+        const usuario = new Usuario(req.body);
+
+        //ahora vamos a guardar en la base de datos
+        //y ponemos await antes para que primero guarde el usario y despues diga con la tarea siguiente
+        //tenemos que poner en la constante async para que funcione el await
+        await usuario.save();
+
+        res.json({
+            ok: true,
+            usuario
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado... rebisar codigo'
+        });
+    }
+}
+
+
+
+
+PASO 23. Creamos el controlador para obtener todos los usuarios.
+
+    const getUsuarios = async(req, res) => {
+
+        const usuarios = await Usuario.find( {}, 'nombre email role'); 
+
+        res.json({
+            ok: true,
+            usuarios
+        });
+    }
+
+------------------------------------------------------------------------
+PASO 24. Instalamos en consola, esto sirve para validar los campos que son obligatorios
+        
+        sudo npm i express-validator
+------------------------------------------------------------------------
+
+PASO 25. Nos vamos a las rutas para implementarlo
+
+    //importamos para validar los campos
+    const { check } = require('express-validator');
+
+    router.post( '/', 
+        [
+                        //No deve estar vacio
+            check('nombre').not().isEmpty(),
+            check('password').not().isEmpty(),
+                        //Tiene que ser un email
+            check('email').isEmail(),
+
+        ],
+        crearUsuario 
+    );
+
+25.1 Importamos el resultado de la validación en: controllers -> usuarios
+
+    const { validationResult } = require('express-validator');
+
+25.2 Creamos un arreglo para obtener los errores que se encuentren.
+
+    const errores = validationResult(req);
+    //si errores no esta vacio
+    if (!errores.isEmpty() ) {
+        return res.status(400).json({
+            ok: false,
+            errors: errores.mapped()
+        });
+    }
+
+25.3 Para personalizar mejor el resultado del error pondremos un segundo parámetro
+     en: routes/usuario
+
+        router.post( '/', 
+            [
+                            //No deve estar vacio
+                check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+                check('password', 'La contraseña es obligatoria').not().isEmpty(),
+                            //Tiene que ser un email
+                check('email', 'El correo es obligatorio').isEmail(),
+
+            ],
+            crearUsuario 
+        );
+
+PASO 26. Creamos una carpeta nueva: middlewares
+         dentro de la carpeta un archivo de nombre: validar-campos.js
+
+         ** NOTA: quitamos el codigo que teniamos en controllers/usuarios
+
+
+         const { response } = require ('express');
+         //Importamos el resultado de la validación
+        const { validationResult } = require('express-validator');
+
+
+            const validarCampos = (req, res = response, next ) => {
+
+                const errores = validationResult(req);
+                //si errores no esta vacio
+                if (!errores.isEmpty() ) {
+                    return res.status(400).json({
+                        ok: false,
+                        errors: errores.mapped()
+                    });
+                }
+
+                //si pasa la validación podemos ejecutar
+                //la siguiente petición por ello ponemos: next
+                next();
+            }
+
+
+            //exportamos el modulo para reutilizarlo en otro lugar
+            module.exports = {
+                validarCampos
+            }
+
+PASO 27. Importamos el modulo a las rutas para aplicarlo.
+
+        const { validarCampos } = require('../middlewares/validar-campos');
+        
+
+        router.post( '/', 
+            [
+                            //No deve estar vacio
+                check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+                check('password', 'La contraseña es obligatoria').not().isEmpty(),
+                            //Tiene que ser un email
+                check('email', 'El correo es obligatorio').isEmail(),
+
+                //tenemos que llamarlo siempre despues de los ckeck
+                validarCampos,
+            ],
+            crearUsuario 
+        );
+
+------------------------------------------------------------------------------------------------
+
+PASO 28. Ahora vamos a encriptar la contraseña para que no sea visible, instalamos en terminal:
+
+         sudo npm i bcryptjs
+
+------------------------------------------------------------------------------------------------
+
+28.1 Lo vamos a utilizar en el controlador donde creamos el usuario, antes de grabar en la base de datos.
+
+     const bcrypt = require('bcryptjs');
+
+
+    //Encriptar la contraseña antes de guardar en base de datos
+        const salt = bcrypt.genSaltSync();
+        usuario.password = bcrypt.hashSync( password, salt);
+
+
+PASO 29. Vamos a crear un controlador para actualizar un usuario en la base de datos
+         pero primero vamos a crear una nueva ruta con: put
+
+
+         router.put( '/:id', 
+            [
+                //No deve estar vacio
+                check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+                //Tiene que ser un email
+                check('email', 'El correo es obligatorio').isEmail(),
+                check('role', 'El rol es obligatorio').not().isEmpty(),
+            ],
+            actualizarUsuario 
+        );
+
+PASO 30. Creamos el controlador para actualizar.
+
+        const actualizarUsuario = async(req, res = response) => {
+
+            const uid = req.params.id;
+
+                try {
+
+                    const usuarioDB = await Usuario.findById( uid );
+
+                    if (!usuarioDB) {
+                        return res.status(404).json({
+                            ok: false,
+                            msg: 'No existe un usuario con este id'
+                        });
+                    }
+
+                    //campos eliminados para no actualizarlos.
+                    const { password, email, ...campos } = req.body;
+
+                    if ( usuarioDB.email !== email ) {
+                    
+                        const existeEmail = await Usuario.findOne({ email });
+                        if (existeEmail) {
+                            return res.status(400).json({
+                                ok: false,
+                                msg: 'Ya existe un usuario con ese correo'
+                            });
+                        }
+                    }
+                    campos.email = email;
+                    const usuarioActualizado = await Usuario.findByIdAndUpdate( uid, campos, { new: true });
+
+                    res.json({
+                        ok: true,
+                        usuario: usuarioActualizado
+                    });
+                    
+                } catch (error) {
+                    console.log(error);
+                    res.status(500).json({
+                        ok: false,
+                        msg: 'Error inesperado'
+                    });
+                }
+
+            
+        }
+
+NOTA: tenemos que exportar el modulo para poder usarlo en las rutas:
+
+    module.exports = {
+        getUsuarios, crearUsuario, actualizarUsuario,
+    }
+
+NOTA: Aqui ya lo estamos llamando en las rutas: 
+
+    const { getUsuarios, crearUsuario, actualizarUsuario } = require('../controllers/usuarios');
+
+
+
+PASO 31. Eliminar usuario.
+
+
+
+
+
+PASO 32. Crear nueva ruta para LOGIN
+
+
+PASO 33. Verificar el correo.
+
+
+PASO 34. Verificar la contraseña
+
+
+
+PASO 35. Crear TOKEN
+    ------------------------------------------------------------------------------------------------
+    INSTALAMOS PAQUETE: sudo npm i jsonwebtoken
+    Terminaos el proceso en la terminal con control+C
+    En el archivo .env tendremos que crear la contraseña que pondremos en el token
+    ejemplo: JWT_SECRET=Desarrollo_app_web_Enfoque_de_Michoacan_2023
+    ------------------------------------------------------------------------------------------------
+    35.1 - Creamos una carpeta nueva en la raíz: helpers
+    35.2 - Creamos un archivo dentro: jwt.js
+    35.3 - Despues de terminar el archivo con el codigo lo aplicamos en el controlador auth.js
+
+            NOTA: Tenemos que importarlo: 
+            const { generarJWT } = require('../helpers/jwt');
+
+             // Generar TOKEN - JWT
+            const token = await generarJWT ( usuarioDB.id);
+
+
+            res.json({ 
+                ok: false,
+                token
+            });
+
+    35.3 - Luego lo usamos en el controlador para crear usuarios justo despues de guardar en la base de datos.
+            
+            NOTA: Tenemos que importarlo: 
+            const { generarJWT } = require('../helpers/jwt');
+
+
+             await usuario.save();
+
+                // Generar TOKEN - JWT
+                const token = await generarJWT ( usuario.id);
+
+                res.json({
+                    ok: true,
+                    usuario,
+                    token
+                });
+
+
+
+
+
+
+
+
+
+
+    PASO 36. Creamos un middleware para el token porque se utilizara en varios lugares
