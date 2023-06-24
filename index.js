@@ -30,7 +30,11 @@ dbConnection();
 
 //RUTAS
 app.use( '/api/usuarios', require('./routes/usuarios') );
+app.use( '/api/articulo', require('./routes/articulo') );
+app.use( '/api/categoria', require('./routes/categoria') );
+app.use( '/api/todo', require('./routes/busquedas') );
 app.use( '/api/login', require('./routes/auth') );
+app.use( '/api/upload', require('./routes/uploads') );
  
 //levantamos el puerto
 app.listen(process.env.PORT, ()=> {
